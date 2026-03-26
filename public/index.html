@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Annotate — URL to Tutorial Images</title>
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --surface: #141414;
+      --border: #2a2a2a;
+      --text: #e5e5e5;
+      --muted: #888;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --success: #22c55e;
+      --error: #ef4444;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      margin-bottom: 0.5rem;
+    }
+
+    h1 span { color: var(--accent); }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 1.1rem;
+    }
+
+    .input-group {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 0.75rem;
+      align-items: stretch;
+    }
+
+    input[type="url"] {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.875rem 1rem;
+      color: var(--text);
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input[type="url"]:focus {
+      border-color: var(--accent);
+    }
+
+    input[type="url"]::placeholder {
+      color: #555;
+    }
+
+    select {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.875rem 1rem;
+      color: var(--text);
+      font-size: 0.9rem;
+      cursor: pointer;
+      outline: none;
+      min-width: 120px;
+    }
+
+    button.generate {
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 0.875rem 1.75rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      white-space: nowrap;
+    }
+
+    button.generate:hover { background: var(--accent-hover); }
+    button.generate:active { transform: scale(0.98); }
+    button.generate:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .status {
+      margin-top: 1rem;
+      display: none;
+      align-items: center;
+      gap: 0.75rem;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .status.visible { display: flex; }
+
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .result {
+      display: none;
+      margin-top: 1rem;
+    }
+
+    .result.visible { display: block; }
+
+    .result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .result-meta {
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    .result-meta strong {
+      color: var(--text);
+    }
+
+    button.download {
+      background: var(--success);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 0.6rem 1.25rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    button.download:hover { opacity: 0.85; }
+
+    .image-container {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+    }
+
+    .image-container img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .error-msg {
+      display: none;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 10px;
+      padding: 1rem;
+      color: var(--error);
+      margin-top: 1rem;
+      font-size: 0.9rem;
+    }
+
+    .error-msg.visible { display: block; }
+
+    footer {
+      text-align: center;
+      margin-top: 4rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    footer a { color: var(--accent); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    .cost-badge {
+      display: inline-block;
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid rgba(34, 197, 94, 0.2);
+      color: var(--success);
+      font-size: 0.75rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 6px;
+      margin-left: 0.5rem;
+    }
+
+    @media (max-width: 640px) {
+      .input-row { flex-direction: column; }
+      h1 { font-size: 1.75rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1><span>Annotate</span></h1>
+      <p class="subtitle">Paste a URL. Get annotated tutorial images. No Canva needed.</p>
+    </header>
+
+    <div class="input-group">
+      <div class="input-row">
+        <input type="url" id="url-input" placeholder="https://example.com" autofocus />
+        <select id="ratio-select">
+          <option value="4:5">4:5 — Feed</option>
+          <option value="3:4">3:4 — Portrait</option>
+          <option value="9:16">9:16 — Stories</option>
+        </select>
+        <button class="generate" id="generate-btn" onclick="generate()">Generate</button>
+      </div>
+      <div class="status" id="status">
+        <div class="spinner"></div>
+        <span id="status-text">Capturing screenshot...</span>
+      </div>
+    </div>
+
+    <div class="error-msg" id="error"></div>
+
+    <div class="result" id="result">
+      <div class="result-header">
+        <div class="result-meta">
+          <strong id="result-title"></strong>
+          <br/>
+          <span id="result-info"></span>
+          <span class="cost-badge">~$0.03 per image</span>
+        </div>
+        <button class="download" id="download-btn" onclick="downloadImage()">Download PNG</button>
+      </div>
+      <div class="image-container">
+        <img id="result-image" alt="Annotated image" />
+      </div>
+    </div>
+
+    <footer>
+      Built with <a href="https://n8n.io">n8n</a>, <a href="https://anthropic.com">Claude Vision</a>, and <a href="https://www.hostinger.com">Hostinger</a>
+      &mdash; <a href="https://github.com/txmyer-dev/annotate">Source</a>
+      <br/><br/>
+      Scrapes.ai x Hostinger Hackathon 2026
+    </footer>
+  </div>
+
+  <script>
+    const urlInput = document.getElementById('url-input');
+    const ratioSelect = document.getElementById('ratio-select');
+    const generateBtn = document.getElementById('generate-btn');
+    const status = document.getElementById('status');
+    const statusText = document.getElementById('status-text');
+    const error = document.getElementById('error');
+    const result = document.getElementById('result');
+    const resultImage = document.getElementById('result-image');
+    const resultTitle = document.getElementById('result-title');
+    const resultInfo = document.getElementById('result-info');
+
+    let currentImageData = null;
+
+    const statusMessages = [
+      'Capturing screenshot...',
+      'Extracting page metadata...',
+      'Claude is analyzing the page...',
+      'Generating annotation plan...',
+      'Rendering annotated image...',
+      'Almost there...',
+    ];
+
+    urlInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') generate();
+    });
+
+    async function generate() {
+      const url = urlInput.value.trim();
+      if (!url) { urlInput.focus(); return; }
+
+      // Reset UI
+      error.classList.remove('visible');
+      result.classList.remove('visible');
+      status.classList.add('visible');
+      generateBtn.disabled = true;
+
+      // Cycle status messages
+      let msgIndex = 0;
+      statusText.textContent = statusMessages[0];
+      const statusInterval = setInterval(() => {
+        msgIndex = Math.min(msgIndex + 1, statusMessages.length - 1);
+        statusText.textContent = statusMessages[msgIndex];
+      }, 5000);
+
+      try {
+        const startTime = Date.now();
+        const res = await fetch('/api/annotate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url, ratio: ratioSelect.value }),
+        });
+
+        clearInterval(statusInterval);
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || 'Request failed');
+        }
+
+        const data = await res.json();
+
+        if (data.image) {
+          currentImageData = data.image;
+          resultImage.src = data.image;
+          resultTitle.textContent = data.data?.title || 'Annotated Image';
+          resultInfo.textContent = `${url} — ${ratioSelect.value} — ${elapsed}s`;
+          result.classList.add('visible');
+        } else if (data.data) {
+          resultTitle.textContent = data.data.title || 'Complete';
+          resultInfo.textContent = `${url} — ${elapsed}s — Check n8n for the image`;
+          result.classList.add('visible');
+          resultImage.style.display = 'none';
+        }
+      } catch (err) {
+        clearInterval(statusInterval);
+        error.textContent = err.message;
+        error.classList.add('visible');
+      } finally {
+        status.classList.remove('visible');
+        generateBtn.disabled = false;
+      }
+    }
+
+    function downloadImage() {
+      if (!currentImageData) return;
+      const a = document.createElement('a');
+      a.href = currentImageData;
+      const domain = urlInput.value.replace(/https?:\/\//, '').replace(/[/\\?#]/g, '_').slice(0, 30);
+      a.download = `annotated_${domain}.png`;
+      a.click();
+    }
+  </script>
+</body>
+</html>
