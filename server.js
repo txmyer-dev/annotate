@@ -35,13 +35,14 @@ app.post('/api/annotate', async (req, res) => {
         ratio: ratio || '4:5',
       });
     } else {
-      // n8n returned JSON (metadata + binary might be separate)
+      // n8n returned JSON with image data from Final Output node
       const data = await response.json();
       res.json({
         success: true,
-        data,
-        url,
-        ratio: ratio || '4:5',
+        image: data.image || null,
+        data: { title: data.title, subtitle: data.subtitle },
+        url: data.url || url,
+        ratio: data.ratio || ratio || '4:5',
       });
     }
   } catch (err) {
