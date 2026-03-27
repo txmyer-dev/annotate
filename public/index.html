@@ -413,6 +413,35 @@
 
     .lightbox-close:hover { color: var(--text); }
 
+    .lightbox-nav {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: white;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      font-size: 1.25rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+      backdrop-filter: blur(4px);
+    }
+
+    .lightbox-nav:hover { background: rgba(255, 255, 255, 0.2); }
+    .lightbox-nav.prev { left: -60px; }
+    .lightbox-nav.next { right: -60px; }
+
+    .lightbox-counter {
+      color: var(--muted);
+      font-size: 0.75rem;
+      margin-left: 0.5rem;
+    }
+
     .card-loading {
       display: flex;
       align-items: center;
@@ -499,9 +528,11 @@
     <div class="lightbox" id="lightbox">
       <div class="lightbox-inner">
         <button class="lightbox-close" id="lightbox-close">&times;</button>
+        <button class="lightbox-nav prev" id="lightbox-prev">&#8249;</button>
+        <button class="lightbox-nav next" id="lightbox-next">&#8250;</button>
         <img id="lightbox-img" alt="Preview" />
         <div class="lightbox-bar">
-          <div class="lightbox-label" id="lightbox-label"></div>
+          <div class="lightbox-label" id="lightbox-label"><span class="lightbox-counter" id="lightbox-counter"></span></div>
           <button class="lightbox-download" id="lightbox-download">Download PNG</button>
         </div>
       </div>
@@ -794,21 +825,24 @@
       a.click();
     }
 
-    // Lightbox
+    // Lightbox with gallery navigation
     var lightbox = document.getElementById('lightbox');
     var lightboxImg = document.getElementById('lightbox-img');
     var lightboxLabel = document.getElementById('lightbox-label');
+    var lightboxCounter = document.getElementById('lightbox-counter');
     var lightboxDownload = document.getElementById('lightbox-download');
     var lightboxClose = document.getElementById('lightbox-close');
-    var lightboxPlatformId = null;
+    var lightboxPrev = document.getElementById('lightbox-prev');
+    var lightboxNext = document.getElementById('lightbox-next');
+    var lightboxIndex = 0;
 
-    function openLightbox(platformId) {
-      var img = generatedImages.find(function(i) { return i.id === platformId; });
-      if (!img) return;
-      lightboxPlatformId = platformId;
+    function updateLightbox(index) {
+      if (generatedImages.length === 0) return;
+      lightboxIndex = index;
+      var img = generatedImages[index];
       lightboxImg.src = img.image;
 
-      var plat = PLATFORMS.find(function(p) { return p.id === platformId; });
+      var plat = PLATFORMS.find(function(p) { return p.id === img.id; });
       lightboxLabel.textContent = '';
       lightboxLabel.appendChild(document.createTextNode(img.name));
       if (plat) {
@@ -816,15 +850,33 @@
         sp.textContent = plat.ratio + ' \u00B7 ' + plat.w + 'x' + plat.h;
         lightboxLabel.appendChild(sp);
       }
+      var counter = document.createElement('span');
+      counter.className = 'lightbox-counter';
+      counter.textContent = (index + 1) + ' / ' + generatedImages.length;
+      lightboxLabel.appendChild(counter);
 
+      lightboxPrev.style.display = generatedImages.length > 1 ? '' : 'none';
+      lightboxNext.style.display = generatedImages.length > 1 ? '' : 'none';
+    }
+
+    function openLightbox(platformId) {
+      var idx = generatedImages.findIndex(function(i) { return i.id === platformId; });
+      if (idx === -1) return;
+      updateLightbox(idx);
       lightbox.classList.add('visible');
       document.body.style.overflow = 'hidden';
+    }
+
+    function navigateLightbox(dir) {
+      if (generatedImages.length < 2) return;
+      var next = (lightboxIndex + dir + generatedImages.length) % generatedImages.length;
+      updateLightbox(next);
     }
 
     function closeLightbox() {
       lightbox.classList.remove('visible');
       document.body.style.overflow = '';
-      lightboxPlatformId = null;
+      lightboxIndex = 0;
     }
 
     lightbox.addEventListener('click', function(e) {
@@ -832,13 +884,18 @@
     });
 
     lightboxClose.addEventListener('click', closeLightbox);
+    lightboxPrev.addEventListener('click', function(e) { e.stopPropagation(); navigateLightbox(-1); });
+    lightboxNext.addEventListener('click', function(e) { e.stopPropagation(); navigateLightbox(1); });
 
     lightboxDownload.addEventListener('click', function() {
-      if (lightboxPlatformId) downloadOne(lightboxPlatformId);
+      if (generatedImages[lightboxIndex]) downloadOne(generatedImages[lightboxIndex].id);
     });
 
     document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape' && lightbox.classList.contains('visible')) closeLightbox();
+      if (!lightbox.classList.contains('visible')) return;
+      if (e.key === 'Escape') closeLightbox();
+      else if (e.key === 'ArrowLeft') navigateLightbox(-1);
+      else if (e.key === 'ArrowRight') navigateLightbox(1);
     });
 
     function downloadAll() {
