@@ -43,7 +43,6 @@
       .url-row { margin-bottom: 1.75rem; }
       .prompt-row { margin-top: 1.5rem; }
       .platform-grid { gap: 0.75rem; }
-      .platform-chip label { padding: 0.75rem 1rem; font-size: 0.9rem; }
     }
 
     header {
@@ -120,28 +119,33 @@
       letter-spacing: 0.05em;
     }
 
-    .platform-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
+    .platform-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; }
 
     .platform-chip { position: relative; overflow: hidden; border-radius: 10px; }
     .platform-chip input { position: absolute; opacity: 0; width: 0; height: 0; }
 
     .platform-chip label {
       display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 0.4rem;
+      justify-content: center;
+      gap: 0.25rem;
       background: rgba(255, 255, 255, 0.03);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 10px;
-      padding: 0.6rem 0.85rem;
-      font-size: 0.85rem;
+      width: 75px;
+      height: 75px;
+      font-size: 0.65rem;
       color: var(--muted);
       cursor: pointer;
       transition: all 0.25s ease;
       user-select: none;
       position: relative;
       overflow: hidden;
+      text-align: center;
+      line-height: 1.2;
     }
 
     .platform-chip label::before {
@@ -544,7 +548,6 @@
     @media (max-width: 640px) {
       .url-row { flex-direction: column; }
       h1 { font-size: 1.75rem; }
-      .platform-grid { grid-template-columns: repeat(2, 1fr); }
       .image-grid { grid-template-columns: 1fr; }
     }
   </style>
