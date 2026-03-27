@@ -8,42 +8,52 @@ const N8N_WEBHOOK = process.env.N8N_WEBHOOK || 'https://n8n.felaniam.cloud/webho
 app.use(express.json({ limit: '50mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Proxy endpoint — calls n8n webhook and streams back the result
+// Proxy endpoint — calls n8n webhook with formats + prompt, returns all images
 app.post('/api/annotate', async (req, res) => {
-  const { url, ratio } = req.body;
+  const { url, formats, prompt } = req.body;
 
   if (!url) {
     return res.status(400).json({ error: 'URL is required' });
   }
 
+  const formatList = formats || ['4:5'];
+
   try {
     const response = await fetch(N8N_WEBHOOK, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url, ratio: ratio || '4:5' }),
+      body: JSON.stringify({ url, formats: formatList, prompt: prompt || '' }),
     });
 
-    const contentType = response.headers.get('content-type');
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text || 'n8n webhook failed');
+    }
 
-    if (contentType && contentType.includes('image/')) {
-      const buffer = await response.arrayBuffer();
-      const base64 = Buffer.from(buffer).toString('base64');
+    const data = await response.json();
+
+    // New multi-format response from Render All Formats node
+    if (data.images) {
       res.json({
         success: true,
-        image: `data:image/png;base64,${base64}`,
-        url,
-        ratio: ratio || '4:5',
+        title: data.title,
+        subtitle: data.subtitle,
+        url: data.url || url,
+        formats: data.formats || formatList,
+        annotationCount: data.annotationCount || 0,
+        images: data.images,
+      });
+    } else if (data.image) {
+      // Legacy single-image fallback
+      res.json({
+        success: true,
+        title: data.title,
+        subtitle: data.subtitle,
+        url: data.url || url,
+        images: { [formatList[0]]: data.image },
       });
     } else {
-      // n8n returned JSON with image data from Final Output node
-      const data = await response.json();
-      res.json({
-        success: true,
-        image: data.image || null,
-        data: { title: data.title, subtitle: data.subtitle },
-        url: data.url || url,
-        ratio: data.ratio || ratio || '4:5',
-      });
+      res.json({ success: false, error: 'No images returned from pipeline' });
     }
   } catch (err) {
     console.error('Annotation failed:', err.message);

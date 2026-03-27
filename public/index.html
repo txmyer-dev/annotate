@@ -136,6 +136,29 @@
 
     .platform-chip label:hover { border-color: #444; }
 
+    .prompt-row {
+      margin-top: 1rem;
+    }
+
+    .prompt-row textarea {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.75rem 1rem;
+      color: var(--text);
+      font-size: 0.9rem;
+      font-family: inherit;
+      outline: none;
+      resize: vertical;
+      min-height: 2.5rem;
+      max-height: 8rem;
+      transition: border-color 0.2s;
+    }
+
+    .prompt-row textarea:focus { border-color: var(--accent); }
+    .prompt-row textarea::placeholder { color: #555; }
+
     .status {
       margin-top: 1rem;
       display: none;
@@ -301,6 +324,9 @@
       </div>
       <div class="platforms-label">Platforms</div>
       <div class="platform-grid" id="platform-grid"></div>
+      <div class="prompt-row">
+        <textarea id="prompt-input" rows="1" placeholder="Optional: &quot;Focus on the pricing section&quot; or &quot;Highlight the signup flow&quot;"></textarea>
+      </div>
       <div class="status" id="status">
         <div class="spinner"></div>
         <span id="status-text">Capturing screenshot...</span>
@@ -371,6 +397,7 @@
     });
 
     var urlInput = document.getElementById('url-input');
+    var promptInput = document.getElementById('prompt-input');
     var generateBtn = document.getElementById('generate-btn');
     var statusEl = document.getElementById('status');
     var statusText = document.getElementById('status-text');
@@ -387,8 +414,8 @@
       'Capturing screenshot...',
       'Extracting page metadata...',
       'Claude is analyzing the page...',
-      'Generating annotation plans...',
-      'Rendering annotated images...',
+      'Generating annotation plan...',
+      'Rendering all formats...',
       'Almost there...',
     ];
 
@@ -407,7 +434,6 @@
       card.className = 'image-card';
       card.id = 'card-' + p.id;
 
-      // Header
       var header = document.createElement('div');
       header.className = 'card-header';
 
@@ -431,7 +457,6 @@
       header.appendChild(dlBtn);
       card.appendChild(header);
 
-      // Body
       var body = document.createElement('div');
       body.className = 'card-body';
 
@@ -508,47 +533,64 @@
       resultsEl.classList.add('visible');
       resultsTitle.textContent = 'Generating...';
       resultsInfo.textContent = url + ' \u2014 ' + selected.length + ' format' + (selected.length > 1 ? 's' : '');
-      costBadge.textContent = '~$' + (0.03 * selected.length).toFixed(2) + ' est.';
+      costBadge.textContent = '~$0.03 est.';
 
       var startTime = Date.now();
+      var userPrompt = promptInput.value.trim();
 
-      // Fire all requests in parallel
-      var promises = selected.map(async function(p) {
-        try {
-          var res = await fetch('/api/annotate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url: url, ratio: p.ratio }),
-          });
-
-          if (!res.ok) {
-            var errData = await res.json();
-            throw new Error(errData.error || 'Request failed');
-          }
-
-          var data = await res.json();
-
-          if (data.image) {
-            generatedImages.push({ id: p.id, name: p.name, image: data.image });
-            setCardLoaded(p.id, data.image);
-          } else {
-            setCardError(p.id, 'No image returned');
-          }
-        } catch (err) {
-          setCardError(p.id, err.message);
-        }
+      // Deduplicate ratios but track which platforms map to which ratio
+      var ratioMap = {};
+      selected.forEach(function(p) {
+        if (!ratioMap[p.ratio]) ratioMap[p.ratio] = [];
+        ratioMap[p.ratio].push(p);
       });
+      var uniqueFormats = Object.keys(ratioMap);
 
-      await Promise.allSettled(promises);
+      try {
+        // ONE request with all formats
+        var res = await fetch('/api/annotate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: url, formats: uniqueFormats, prompt: userPrompt }),
+        });
 
-      clearInterval(statusInterval);
-      statusEl.classList.remove('visible');
-      generateBtn.disabled = false;
+        clearInterval(statusInterval);
 
-      var elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-      resultsTitle.textContent = generatedImages.length + '/' + selected.length + ' images generated';
-      resultsInfo.textContent = url + ' \u2014 ' + elapsed + 's total';
-      costBadge.textContent = '~$' + (0.03 * generatedImages.length).toFixed(2);
+        if (!res.ok) {
+          var errData = await res.json();
+          throw new Error(errData.error || 'Request failed');
+        }
+
+        var data = await res.json();
+
+        if (data.images) {
+          // Map images back to platforms (multiple platforms can share a ratio)
+          selected.forEach(function(p) {
+            var img = data.images[p.ratio];
+            if (img) {
+              generatedImages.push({ id: p.id, name: p.name, ratio: p.ratio, image: img });
+              setCardLoaded(p.id, img);
+            } else {
+              setCardError(p.id, 'No image for this format');
+            }
+          });
+        } else {
+          throw new Error('No images returned');
+        }
+
+        var elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+        resultsTitle.textContent = generatedImages.length + '/' + selected.length + ' images generated';
+        resultsInfo.textContent = url + ' \u2014 ' + elapsed + 's \u2014 ' + uniqueFormats.length + ' unique ratio' + (uniqueFormats.length > 1 ? 's' : '') + ' rendered';
+        costBadge.textContent = '~$0.03';
+      } catch (err) {
+        clearInterval(statusInterval);
+        selected.forEach(function(p) { setCardError(p.id, err.message); });
+        errorEl.textContent = err.message;
+        errorEl.classList.add('visible');
+      } finally {
+        statusEl.classList.remove('visible');
+        generateBtn.disabled = false;
+      }
     }
 
     function downloadOne(platformId) {
