@@ -24,12 +24,21 @@
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
+      background-image:
+        radial-gradient(ellipse 80% 50% at 20% 0%, rgba(59, 130, 246, 0.08), transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 100%, rgba(139, 92, 246, 0.06), transparent 50%),
+        radial-gradient(ellipse 40% 30% at 50% 50%, rgba(59, 130, 246, 0.03), transparent 40%);
+      background-attachment: fixed;
     }
 
     .container {
       max-width: 960px;
       margin: 0 auto;
       padding: 2rem 1.5rem;
+    }
+
+    @media (min-width: 1024px) {
+      .container { max-width: 75vw; }
     }
 
     header {
@@ -191,7 +200,35 @@
       display: flex;
       align-items: center;
       gap: 0.75rem;
-      justify-content: flex-end;
+      justify-content: space-between;
+    }
+
+    .logo-right {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-left: auto;
+    }
+
+    .reset-btn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      width: 34px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 1rem;
+      transition: all 0.2s;
+    }
+
+    .reset-btn:hover {
+      border-color: var(--error);
+      color: var(--error);
+      background: rgba(239, 68, 68, 0.08);
     }
 
     .logo-upload-btn {
@@ -525,12 +562,15 @@
         <textarea id="prompt-input" rows="1" placeholder="Optional: &quot;Focus on the pricing section&quot; or &quot;Highlight the signup flow&quot;"></textarea>
       </div>
       <div class="logo-row">
-        <input type="file" id="logo-file" accept="image/*" hidden />
-        <button type="button" class="logo-upload-btn" onclick="document.getElementById('logo-file').click()">Upload Logo</button>
-        <div class="logo-preview" id="logo-preview">
-          <img id="logo-preview-img" alt="Logo" />
-          <span class="logo-name" id="logo-name"></span>
-          <button type="button" class="logo-remove" onclick="removeLogo()">&times;</button>
+        <button type="button" class="reset-btn" onclick="resetAll()" title="Reset">&#x21bb;</button>
+        <div class="logo-right">
+          <input type="file" id="logo-file" accept="image/*" hidden />
+          <div class="logo-preview" id="logo-preview">
+            <img id="logo-preview-img" alt="Logo" />
+            <span class="logo-name" id="logo-name"></span>
+            <button type="button" class="logo-remove" onclick="removeLogo()">&times;</button>
+          </div>
+          <button type="button" class="logo-upload-btn" onclick="document.getElementById('logo-file').click()">Upload Logo</button>
         </div>
       </div>
       <div class="status" id="status">
@@ -865,6 +905,19 @@
       var domain = urlInput.value.replace(/https?:\/\//, '').replace(/[/\\?#]/g, '_').slice(0, 30);
       a.download = 'annotated_' + domain + '_' + platformId + '.png';
       a.click();
+    }
+
+    function resetAll() {
+      urlInput.value = '';
+      promptInput.value = '';
+      removeLogo();
+      generatedImages = [];
+      imageGrid.textContent = '';
+      resultsEl.classList.remove('visible');
+      errorEl.classList.remove('visible');
+      statusEl.classList.remove('visible');
+      generateBtn.disabled = false;
+      urlInput.focus();
     }
 
     // Lightbox with gallery navigation
