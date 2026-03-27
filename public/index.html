@@ -398,7 +398,7 @@
 
     <div class="input-group">
       <div class="url-row">
-        <input type="url" id="url-input" placeholder="https://example.com" autofocus />
+        <input type="text" id="url-input" placeholder="example.com" autofocus />
         <button class="generate" id="generate-btn" onclick="generate()">Generate</button>
       </div>
       <div class="platforms-label">Platforms</div>
@@ -592,6 +592,11 @@
     async function generate() {
       var url = urlInput.value.trim();
       if (!url) { urlInput.focus(); return; }
+      // Normalize URL: add https:// if no protocol
+      if (!/^https?:\/\//i.test(url)) {
+        url = 'https://' + url.replace(/^\/\//, '');
+      }
+      urlInput.value = url;
 
       var selected = getSelectedPlatforms();
       if (selected.length === 0) {

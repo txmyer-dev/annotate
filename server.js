@@ -10,10 +10,15 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Proxy endpoint — calls n8n webhook with formats + prompt, returns all images
 app.post('/api/annotate', async (req, res) => {
-  const { url, formats, prompt } = req.body;
+  let { url, formats, prompt } = req.body;
 
   if (!url) {
     return res.status(400).json({ error: 'URL is required' });
+  }
+
+  // Normalize URL: add https:// if no protocol
+  if (!/^https?:\/\//i.test(url)) {
+    url = 'https://' + url.replace(/^\/\//, '');
   }
 
   const formatList = formats || ['4:5'];
