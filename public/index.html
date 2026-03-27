@@ -164,21 +164,24 @@
       display: flex;
       align-items: center;
       gap: 0.75rem;
+      justify-content: flex-end;
     }
 
     .logo-upload-btn {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 8px;
+      background: var(--accent);
+      border: none;
+      border-radius: 10px;
       padding: 0.5rem 0.85rem;
-      color: var(--muted);
+      color: white;
       font-size: 0.8rem;
+      font-weight: 600;
       cursor: pointer;
-      transition: border-color 0.2s;
+      transition: background 0.2s, transform 0.1s;
       white-space: nowrap;
     }
 
-    .logo-upload-btn:hover { border-color: #444; }
+    .logo-upload-btn:hover { background: var(--accent-hover); }
+    .logo-upload-btn:active { transform: scale(0.98); }
 
     .logo-preview {
       display: none;
