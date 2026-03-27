@@ -272,7 +272,86 @@
 
     .card-download:hover { background: rgba(59, 130, 246, 0.1); }
 
-    .card-body img { width: 100%; height: auto; display: block; }
+    .card-body img { width: 100%; height: auto; display: block; cursor: pointer; }
+
+    .lightbox {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(8px);
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      cursor: pointer;
+    }
+
+    .lightbox.visible { display: flex; }
+
+    .lightbox-inner {
+      position: relative;
+      max-width: 90vw;
+      max-height: 90vh;
+      cursor: default;
+    }
+
+    .lightbox-inner img {
+      max-width: 90vw;
+      max-height: 85vh;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+      display: block;
+    }
+
+    .lightbox-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 0;
+    }
+
+    .lightbox-label {
+      color: var(--text);
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    .lightbox-label span {
+      color: var(--muted);
+      font-weight: 400;
+      font-size: 0.8rem;
+      margin-left: 0.5rem;
+    }
+
+    .lightbox-download {
+      background: var(--success);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 0.5rem 1.25rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .lightbox-download:hover { opacity: 0.85; }
+
+    .lightbox-close {
+      position: absolute;
+      top: -2.5rem;
+      right: 0;
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 0.25rem 0.5rem;
+      line-height: 1;
+    }
+
+    .lightbox-close:hover { color: var(--text); }
 
     .card-loading {
       display: flex;
@@ -346,6 +425,17 @@
         <button class="download-all" onclick="downloadAll()">Download All</button>
       </div>
       <div class="image-grid" id="image-grid"></div>
+    </div>
+
+    <div class="lightbox" id="lightbox">
+      <div class="lightbox-inner">
+        <button class="lightbox-close" id="lightbox-close">&times;</button>
+        <img id="lightbox-img" alt="Preview" />
+        <div class="lightbox-bar">
+          <div class="lightbox-label" id="lightbox-label"></div>
+          <button class="lightbox-download" id="lightbox-download">Download PNG</button>
+        </div>
+      </div>
     </div>
 
     <footer>
@@ -482,6 +572,7 @@
       var img = document.createElement('img');
       img.src = imageSrc;
       img.alt = platformId + ' annotated image';
+      img.addEventListener('click', function() { openLightbox(platformId); });
       body.appendChild(img);
       var dlBtn = card.querySelector('.card-download');
       if (dlBtn) dlBtn.style.display = '';
@@ -602,6 +693,53 @@
       a.download = 'annotated_' + domain + '_' + platformId + '.png';
       a.click();
     }
+
+    // Lightbox
+    var lightbox = document.getElementById('lightbox');
+    var lightboxImg = document.getElementById('lightbox-img');
+    var lightboxLabel = document.getElementById('lightbox-label');
+    var lightboxDownload = document.getElementById('lightbox-download');
+    var lightboxClose = document.getElementById('lightbox-close');
+    var lightboxPlatformId = null;
+
+    function openLightbox(platformId) {
+      var img = generatedImages.find(function(i) { return i.id === platformId; });
+      if (!img) return;
+      lightboxPlatformId = platformId;
+      lightboxImg.src = img.image;
+
+      var plat = PLATFORMS.find(function(p) { return p.id === platformId; });
+      lightboxLabel.textContent = '';
+      lightboxLabel.appendChild(document.createTextNode(img.name));
+      if (plat) {
+        var sp = document.createElement('span');
+        sp.textContent = plat.ratio + ' \u00B7 ' + plat.w + 'x' + plat.h;
+        lightboxLabel.appendChild(sp);
+      }
+
+      lightbox.classList.add('visible');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeLightbox() {
+      lightbox.classList.remove('visible');
+      document.body.style.overflow = '';
+      lightboxPlatformId = null;
+    }
+
+    lightbox.addEventListener('click', function(e) {
+      if (e.target === lightbox) closeLightbox();
+    });
+
+    lightboxClose.addEventListener('click', closeLightbox);
+
+    lightboxDownload.addEventListener('click', function() {
+      if (lightboxPlatformId) downloadOne(lightboxPlatformId);
+    });
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && lightbox.classList.contains('visible')) closeLightbox();
+    });
 
     function downloadAll() {
       generatedImages.forEach(function(img) {
