@@ -106,7 +106,7 @@
       letter-spacing: 0.05em;
     }
 
-    .platform-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .platform-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
 
     .platform-chip { position: relative; }
     .platform-chip input { position: absolute; opacity: 0; width: 0; height: 0; }
@@ -475,6 +475,7 @@
     @media (max-width: 640px) {
       .url-row { flex-direction: column; }
       h1 { font-size: 1.75rem; }
+      .platform-grid { grid-template-columns: repeat(2, 1fr); }
       .image-grid { grid-template-columns: 1fr; }
     }
   </style>
@@ -557,6 +558,10 @@
       { id: 'tiktok',     name: 'TikTok',             ratio: '9:16',   w: 1080, h: 1920 },
       { id: 'snapchat',   name: 'Snapchat',           ratio: '9:16',   w: 1080, h: 1920 },
       { id: 'pinterest',  name: 'Pinterest',          ratio: '2:3',    w: 1000, h: 1500 },
+      { id: 'bluesky',    name: 'Bluesky',            ratio: '16:9',   w: 1600, h: 900  },
+      { id: 'reddit',     name: 'Reddit',             ratio: '4:3',    w: 1200, h: 900  },
+      { id: 'discord',    name: 'Discord',            ratio: '16:9',   w: 1600, h: 900  },
+      { id: 'twitch',     name: 'Twitch',             ratio: '16:9',   w: 1600, h: 900  },
     ];
 
     const DEFAULT_SELECTED = ['ig-feed', 'facebook', 'linkedin'];
