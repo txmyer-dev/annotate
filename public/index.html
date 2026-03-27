@@ -94,6 +94,86 @@
     input[type="text"]:focus { border-color: var(--accent); }
     input[type="text"]::placeholder { color: #555; }
 
+    .input-toggle {
+      display: flex;
+      gap: 0;
+      margin-bottom: 1rem;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      width: fit-content;
+    }
+
+    .input-toggle button {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      padding: 0.5rem 1.25rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .input-toggle button.active {
+      background: var(--accent);
+      color: white;
+    }
+
+    .input-toggle button:not(.active):hover { background: rgba(255,255,255,0.05); }
+
+    .image-upload-area {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+      border: 2px dashed var(--border);
+      border-radius: 10px;
+      padding: 1.5rem;
+      cursor: pointer;
+      transition: border-color 0.2s;
+      margin-bottom: 1.25rem;
+    }
+
+    .image-upload-area.visible { display: flex; }
+    .image-upload-area:hover { border-color: var(--accent); }
+    .image-upload-area.dragover { border-color: var(--accent); background: rgba(59,130,246,0.05); }
+
+    .image-upload-area .upload-text {
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    .image-upload-area .upload-text strong { color: var(--accent); }
+
+    .image-upload-preview {
+      display: none;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .image-upload-preview.visible { display: flex; }
+
+    .image-upload-preview img {
+      height: 80px;
+      max-width: 200px;
+      object-fit: contain;
+      border-radius: 8px;
+    }
+
+    .image-upload-preview .upload-name {
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    .image-upload-preview .upload-remove {
+      background: none;
+      border: none;
+      color: var(--error);
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
     button.generate {
       background: var(--accent);
       color: white;
@@ -565,13 +645,30 @@
   <div class="container">
     <header>
       <h1><span>Annotate</span></h1>
-      <p class="subtitle">Paste a URL. Get annotated tutorial images. No Canva needed.</p>
+      <p class="subtitle">Paste a URL or upload an image. Get annotated tutorial images. No Canva needed.</p>
     </header>
 
     <div class="input-group">
-      <div class="url-row">
+      <div class="input-toggle" id="input-toggle">
+        <button class="active" onclick="setInputMode('url')">URL</button>
+        <button onclick="setInputMode('image')">Upload Image</button>
+      </div>
+      <div class="url-row" id="url-row">
         <input type="text" id="url-input" placeholder="example.com" autofocus />
         <button class="generate" id="generate-btn" onclick="generate()">Generate</button>
+      </div>
+      <div class="image-upload-area" id="image-upload-area" onclick="document.getElementById('source-image-file').click()">
+        <input type="file" id="source-image-file" accept="image/*" hidden />
+        <div class="upload-text"><strong>Click to upload</strong> or drag and drop</div>
+        <div class="upload-text">PNG, JPG up to 10MB</div>
+        <div class="image-upload-preview" id="image-upload-preview">
+          <img id="image-upload-preview-img" alt="Preview" />
+          <span class="upload-name" id="image-upload-name"></span>
+          <button type="button" class="upload-remove" onclick="event.stopPropagation(); removeSourceImage()">&times;</button>
+        </div>
+      </div>
+      <div id="image-generate-row" style="display:none;text-align:right;margin-bottom:1.25rem">
+        <button class="generate" id="generate-btn-img" onclick="generate()">Generate</button>
       </div>
       <div class="platforms-label">Platforms</div>
       <div class="platform-grid" id="platform-grid"></div>
@@ -727,6 +824,62 @@
 
     var generatedImages = [];
     var logoBase64 = '';
+    var sourceImageBase64 = '';
+    var inputMode = 'url';
+
+    // Input mode toggle
+    function setInputMode(mode) {
+      inputMode = mode;
+      var btns = document.querySelectorAll('#input-toggle button');
+      btns[0].className = mode === 'url' ? 'active' : '';
+      btns[1].className = mode === 'image' ? 'active' : '';
+      document.getElementById('url-row').style.display = mode === 'url' ? '' : 'none';
+      document.getElementById('image-upload-area').classList.toggle('visible', mode === 'image');
+      document.getElementById('image-generate-row').style.display = mode === 'image' ? '' : 'none';
+    }
+
+    // Source image upload
+    var uploadArea = document.getElementById('image-upload-area');
+    document.getElementById('source-image-file').addEventListener('change', function(e) {
+      var file = e.target.files[0];
+      if (file) handleSourceImage(file);
+    });
+
+    uploadArea.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      uploadArea.classList.add('dragover');
+    });
+    uploadArea.addEventListener('dragleave', function() {
+      uploadArea.classList.remove('dragover');
+    });
+    uploadArea.addEventListener('drop', function(e) {
+      e.preventDefault();
+      uploadArea.classList.remove('dragover');
+      var file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith('image/')) handleSourceImage(file);
+    });
+
+    function handleSourceImage(file) {
+      if (file.size > 10 * 1024 * 1024) {
+        errorEl.textContent = 'Image must be under 10MB.';
+        errorEl.classList.add('visible');
+        return;
+      }
+      var reader = new FileReader();
+      reader.onload = function(ev) {
+        sourceImageBase64 = ev.target.result;
+        document.getElementById('image-upload-preview-img').src = sourceImageBase64;
+        document.getElementById('image-upload-name').textContent = file.name;
+        document.getElementById('image-upload-preview').classList.add('visible');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function removeSourceImage() {
+      sourceImageBase64 = '';
+      document.getElementById('source-image-file').value = '';
+      document.getElementById('image-upload-preview').classList.remove('visible');
+    }
 
     // Logo upload handling
     document.getElementById('logo-file').addEventListener('change', function(e) {
@@ -843,13 +996,24 @@
     }
 
     async function generate() {
-      var url = urlInput.value.trim();
-      if (!url) { urlInput.focus(); return; }
-      // Normalize URL: add https:// if no protocol
-      if (!/^https?:\/\//i.test(url)) {
-        url = 'https://' + url.replace(/^\/\//, '');
+      var url = '';
+      var sourceImage = '';
+
+      if (inputMode === 'url') {
+        url = urlInput.value.trim();
+        if (!url) { urlInput.focus(); return; }
+        if (!/^https?:\/\//i.test(url)) {
+          url = 'https://' + url.replace(/^\/\//, '');
+        }
+        urlInput.value = url;
+      } else {
+        sourceImage = sourceImageBase64;
+        if (!sourceImage) {
+          errorEl.textContent = 'Upload an image first.';
+          errorEl.classList.add('visible');
+          return;
+        }
       }
-      urlInput.value = url;
 
       var selected = getSelectedPlatforms();
       if (selected.length === 0) {
@@ -863,15 +1027,20 @@
       resultsEl.classList.remove('visible');
       statusEl.classList.add('visible');
       generateBtn.disabled = true;
+      var genBtnImg = document.getElementById('generate-btn-img');
+      if (genBtnImg) genBtnImg.disabled = true;
       imageGrid.textContent = '';
       generatedImages = [];
 
       // Cycle status messages
       var msgIndex = 0;
-      statusText.textContent = statusMessages[0];
+      var msgs = inputMode === 'image'
+        ? ['Claude is analyzing the image...', 'Generating annotation plan...', 'Rendering all formats...', 'Almost there...']
+        : statusMessages;
+      statusText.textContent = msgs[0];
       var statusInterval = setInterval(function() {
-        msgIndex = Math.min(msgIndex + 1, statusMessages.length - 1);
-        statusText.textContent = statusMessages[msgIndex];
+        msgIndex = Math.min(msgIndex + 1, msgs.length - 1);
+        statusText.textContent = msgs[msgIndex];
       }, 5000);
 
       // Create placeholder cards
@@ -881,13 +1050,14 @@
 
       resultsEl.classList.add('visible');
       resultsTitle.textContent = 'Generating...';
-      resultsInfo.textContent = url + ' \u2014 ' + selected.length + ' format' + (selected.length > 1 ? 's' : '');
+      var label = inputMode === 'url' ? url : 'uploaded image';
+      resultsInfo.textContent = label + ' \u2014 ' + selected.length + ' format' + (selected.length > 1 ? 's' : '');
       costBadge.textContent = '~$0.03 est.';
 
       var startTime = Date.now();
       var userPrompt = promptInput.value.trim();
 
-      // Deduplicate ratios but track which platforms map to which ratio
+      // Deduplicate ratios
       var ratioMap = {};
       selected.forEach(function(p) {
         if (!ratioMap[p.ratio]) ratioMap[p.ratio] = [];
@@ -895,12 +1065,18 @@
       });
       var uniqueFormats = Object.keys(ratioMap);
 
+      var payload = { formats: uniqueFormats, prompt: userPrompt, logo: logoBase64 || undefined };
+      if (inputMode === 'url') {
+        payload.url = url;
+      } else {
+        payload.image = sourceImage;
+      }
+
       try {
-        // ONE request with all formats
         var res = await fetch('/api/annotate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url: url, formats: uniqueFormats, prompt: userPrompt, logo: logoBase64 || undefined }),
+          body: JSON.stringify(payload),
         });
 
         clearInterval(statusInterval);
@@ -929,7 +1105,7 @@
 
         var elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
         resultsTitle.textContent = generatedImages.length + '/' + selected.length + ' images generated';
-        resultsInfo.textContent = url + ' \u2014 ' + elapsed + 's \u2014 ' + uniqueFormats.length + ' unique ratio' + (uniqueFormats.length > 1 ? 's' : '') + ' rendered';
+        resultsInfo.textContent = label + ' \u2014 ' + elapsed + 's \u2014 ' + uniqueFormats.length + ' unique ratio' + (uniqueFormats.length > 1 ? 's' : '') + ' rendered';
         costBadge.textContent = '~$0.03';
       } catch (err) {
         clearInterval(statusInterval);
@@ -939,6 +1115,8 @@
       } finally {
         statusEl.classList.remove('visible');
         generateBtn.disabled = false;
+        var genBtnImg2 = document.getElementById('generate-btn-img');
+        if (genBtnImg2) genBtnImg2.disabled = false;
       }
     }
 
@@ -956,12 +1134,14 @@
       urlInput.value = '';
       promptInput.value = '';
       removeLogo();
+      removeSourceImage();
       generatedImages = [];
       imageGrid.textContent = '';
       resultsEl.classList.remove('visible');
       errorEl.classList.remove('visible');
       statusEl.classList.remove('visible');
       generateBtn.disabled = false;
+      setInputMode('url');
       urlInput.focus();
     }
 
