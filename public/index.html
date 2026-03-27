@@ -414,27 +414,28 @@
     .lightbox-close:hover { color: var(--text); }
 
     .lightbox-nav {
-      position: absolute;
+      position: fixed;
       top: 50%;
       transform: translateY(-50%);
       background: rgba(255, 255, 255, 0.1);
       border: 1px solid rgba(255, 255, 255, 0.15);
       color: white;
-      width: 44px;
-      height: 44px;
+      width: 48px;
+      height: 48px;
       border-radius: 50%;
-      font-size: 1.25rem;
+      font-size: 1.4rem;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       transition: background 0.2s;
       backdrop-filter: blur(4px);
+      z-index: 1001;
     }
 
-    .lightbox-nav:hover { background: rgba(255, 255, 255, 0.2); }
-    .lightbox-nav.prev { left: -60px; }
-    .lightbox-nav.next { right: -60px; }
+    .lightbox-nav:hover { background: rgba(255, 255, 255, 0.25); }
+    .lightbox-nav.prev { left: 1.5rem; }
+    .lightbox-nav.next { right: 1.5rem; }
 
     .lightbox-counter {
       color: var(--muted);
@@ -526,10 +527,10 @@
     </div>
 
     <div class="lightbox" id="lightbox">
+      <button class="lightbox-nav prev" id="lightbox-prev">&#8249;</button>
+      <button class="lightbox-nav next" id="lightbox-next">&#8250;</button>
       <div class="lightbox-inner">
         <button class="lightbox-close" id="lightbox-close">&times;</button>
-        <button class="lightbox-nav prev" id="lightbox-prev">&#8249;</button>
-        <button class="lightbox-nav next" id="lightbox-next">&#8250;</button>
         <img id="lightbox-img" alt="Preview" />
         <div class="lightbox-bar">
           <div class="lightbox-label" id="lightbox-label"><span class="lightbox-counter" id="lightbox-counter"></span></div>
