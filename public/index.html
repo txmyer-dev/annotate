@@ -159,6 +159,63 @@
     .prompt-row textarea:focus { border-color: var(--accent); }
     .prompt-row textarea::placeholder { color: #555; }
 
+    .logo-row {
+      margin-top: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .logo-upload-btn {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.5rem 0.85rem;
+      color: var(--muted);
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: border-color 0.2s;
+      white-space: nowrap;
+    }
+
+    .logo-upload-btn:hover { border-color: #444; }
+
+    .logo-preview {
+      display: none;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .logo-preview.visible { display: flex; }
+
+    .logo-preview img {
+      height: 28px;
+      max-width: 120px;
+      object-fit: contain;
+      border-radius: 4px;
+    }
+
+    .logo-preview .logo-name {
+      font-size: 0.75rem;
+      color: var(--muted);
+      max-width: 120px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .logo-remove {
+      background: none;
+      border: none;
+      color: var(--error);
+      font-size: 0.9rem;
+      cursor: pointer;
+      padding: 0 0.25rem;
+      line-height: 1;
+    }
+
+    .logo-remove:hover { opacity: 0.7; }
+
     .status {
       margin-top: 1rem;
       display: none;
@@ -406,6 +463,15 @@
       <div class="prompt-row">
         <textarea id="prompt-input" rows="1" placeholder="Optional: &quot;Focus on the pricing section&quot; or &quot;Highlight the signup flow&quot;"></textarea>
       </div>
+      <div class="logo-row">
+        <input type="file" id="logo-file" accept="image/*" hidden />
+        <button type="button" class="logo-upload-btn" onclick="document.getElementById('logo-file').click()">Upload Logo</button>
+        <div class="logo-preview" id="logo-preview">
+          <img id="logo-preview-img" alt="Logo" />
+          <span class="logo-name" id="logo-name"></span>
+          <button type="button" class="logo-remove" onclick="removeLogo()">&times;</button>
+        </div>
+      </div>
       <div class="status" id="status">
         <div class="spinner"></div>
         <span id="status-text">Capturing screenshot...</span>
@@ -499,6 +565,32 @@
     var costBadge = document.getElementById('cost-badge');
 
     var generatedImages = [];
+    var logoBase64 = '';
+
+    // Logo upload handling
+    document.getElementById('logo-file').addEventListener('change', function(e) {
+      var file = e.target.files[0];
+      if (!file) return;
+      if (file.size > 2 * 1024 * 1024) {
+        errorEl.textContent = 'Logo must be under 2MB.';
+        errorEl.classList.add('visible');
+        return;
+      }
+      var reader = new FileReader();
+      reader.onload = function(ev) {
+        logoBase64 = ev.target.result;
+        document.getElementById('logo-preview-img').src = logoBase64;
+        document.getElementById('logo-name').textContent = file.name;
+        document.getElementById('logo-preview').classList.add('visible');
+      };
+      reader.readAsDataURL(file);
+    });
+
+    function removeLogo() {
+      logoBase64 = '';
+      document.getElementById('logo-file').value = '';
+      document.getElementById('logo-preview').classList.remove('visible');
+    }
 
     var statusMessages = [
       'Capturing screenshot...',
@@ -647,7 +739,7 @@
         var res = await fetch('/api/annotate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url: url, formats: uniqueFormats, prompt: userPrompt }),
+          body: JSON.stringify({ url: url, formats: uniqueFormats, prompt: userPrompt, logo: logoBase64 || undefined }),
         });
 
         clearInterval(statusInterval);
