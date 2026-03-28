@@ -627,126 +627,6 @@
     footer a { color: var(--accent); text-decoration: none; }
     footer a:hover { text-decoration: underline; }
 
-    /* Auth section */
-    .auth-toggle {
-      display: none;
-      margin-bottom: 1rem;
-    }
-
-    .auth-toggle.visible { display: block; }
-
-    .auth-toggle-btn {
-      background: none;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 0.5rem 0.85rem;
-      color: var(--muted);
-      font-size: 0.8rem;
-      cursor: pointer;
-      transition: all 0.2s;
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-    }
-
-    .auth-toggle-btn:hover { border-color: var(--accent); color: var(--text); }
-    .auth-toggle-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(59, 130, 246, 0.08); }
-
-    .auth-panel {
-      display: none;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 1rem;
-      margin-top: 0.5rem;
-    }
-
-    .auth-panel.visible { display: block; }
-
-    .auth-tabs {
-      display: flex;
-      gap: 0;
-      margin-bottom: 0.75rem;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      overflow: hidden;
-      width: fit-content;
-    }
-
-    .auth-tabs button {
-      background: transparent;
-      border: none;
-      color: var(--muted);
-      padding: 0.4rem 1rem;
-      font-size: 0.75rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .auth-tabs button.active { background: var(--accent); color: white; }
-    .auth-tabs button:not(.active):hover { background: rgba(255,255,255,0.05); }
-
-    .auth-tab-content { display: none; }
-    .auth-tab-content.visible { display: block; }
-
-    .auth-field { margin-bottom: 0.5rem; }
-
-    .auth-field label {
-      display: block;
-      font-size: 0.7rem;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: 0.25rem;
-    }
-
-    .auth-field input, .auth-field textarea {
-      width: 100%;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 0.6rem 0.75rem;
-      color: var(--text);
-      font-size: 0.85rem;
-      font-family: inherit;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-
-    .auth-field input:focus, .auth-field textarea:focus { border-color: var(--accent); }
-    .auth-field input::placeholder, .auth-field textarea::placeholder { color: #555; }
-
-    .auth-field textarea {
-      resize: vertical;
-      min-height: 4rem;
-      max-height: 10rem;
-      font-family: 'Consolas', 'Monaco', monospace;
-      font-size: 0.75rem;
-    }
-
-    .auth-advanced-toggle {
-      background: none;
-      border: none;
-      color: var(--muted);
-      font-size: 0.7rem;
-      cursor: pointer;
-      padding: 0.25rem 0;
-      transition: color 0.2s;
-    }
-
-    .auth-advanced-toggle:hover { color: var(--text); }
-
-    .auth-advanced { display: none; margin-top: 0.5rem; }
-    .auth-advanced.visible { display: block; }
-
-    .auth-hint {
-      font-size: 0.7rem;
-      color: var(--muted);
-      margin-top: 0.25rem;
-      line-height: 1.4;
-    }
-
     @media (max-width: 640px) {
       .url-row { flex-direction: column; }
       h1 { font-size: 1.75rem; }
@@ -789,52 +669,6 @@
       </div>
       <div id="image-generate-row" style="display:none;text-align:right;margin-bottom:1.25rem">
         <button class="generate" id="generate-btn-img" onclick="generate()">Generate</button>
-      </div>
-      <div class="auth-toggle visible" id="auth-toggle-wrap">
-        <button type="button" class="auth-toggle-btn" id="auth-toggle-btn" onclick="toggleAuth()">&#x1f512; Login Required?</button>
-        <div class="auth-panel" id="auth-panel">
-          <div class="auth-tabs" id="auth-tabs">
-            <button class="active" onclick="setAuthTab('credentials')">Credentials</button>
-            <button onclick="setAuthTab('cookies')">Cookies</button>
-          </div>
-          <div class="auth-tab-content visible" id="auth-tab-credentials">
-            <div class="auth-field">
-              <label for="auth-login-url">Login Page URL</label>
-              <input type="text" id="auth-login-url" placeholder="https://app.example.com/login" autocomplete="off" />
-            </div>
-            <div class="auth-field">
-              <label for="auth-username">Username / Email</label>
-              <input type="text" id="auth-username" placeholder="user@example.com" autocomplete="off" />
-            </div>
-            <div class="auth-field">
-              <label for="auth-password">Password</label>
-              <input type="password" id="auth-password" placeholder="Password" autocomplete="off" />
-            </div>
-            <button type="button" class="auth-advanced-toggle" onclick="toggleAuthAdvanced()">&#x25B6; Advanced: CSS Selectors</button>
-            <div class="auth-advanced" id="auth-advanced">
-              <div class="auth-field">
-                <label for="auth-sel-user">Username Selector</label>
-                <input type="text" id="auth-sel-user" placeholder='input[name="email"], input[type="email"]' autocomplete="off" />
-              </div>
-              <div class="auth-field">
-                <label for="auth-sel-pass">Password Selector</label>
-                <input type="text" id="auth-sel-pass" placeholder='input[name="password"], input[type="password"]' autocomplete="off" />
-              </div>
-              <div class="auth-field">
-                <label for="auth-sel-submit">Submit Button Selector</label>
-                <input type="text" id="auth-sel-submit" placeholder='button[type="submit"]' autocomplete="off" />
-              </div>
-              <p class="auth-hint">Override selectors if auto-detection fails. Leave blank for defaults.</p>
-            </div>
-          </div>
-          <div class="auth-tab-content" id="auth-tab-cookies">
-            <div class="auth-field">
-              <label for="auth-cookies">Session Cookies (JSON)</label>
-              <textarea id="auth-cookies" placeholder='[{"name": "session", "value": "abc123", "domain": ".example.com"}]' autocomplete="off"></textarea>
-            </div>
-            <p class="auth-hint">Export cookies from DevTools (Application > Cookies) for OAuth/SSO sites where form login isn't possible.</p>
-          </div>
-        </div>
       </div>
       <div class="platforms-label">Platforms</div>
       <div class="platform-grid" id="platform-grid"></div>
@@ -992,71 +826,6 @@
     var logoBase64 = '';
     var sourceImageBase64 = '';
     var inputMode = 'url';
-    var authEnabled = false;
-    var authTab = 'credentials';
-
-    function toggleAuth() {
-      authEnabled = !authEnabled;
-      document.getElementById('auth-toggle-btn').classList.toggle('active', authEnabled);
-      document.getElementById('auth-panel').classList.toggle('visible', authEnabled);
-    }
-
-    function setAuthTab(tab) {
-      authTab = tab;
-      var btns = document.querySelectorAll('#auth-tabs button');
-      btns[0].className = tab === 'credentials' ? 'active' : '';
-      btns[1].className = tab === 'cookies' ? 'active' : '';
-      document.getElementById('auth-tab-credentials').classList.toggle('visible', tab === 'credentials');
-      document.getElementById('auth-tab-cookies').classList.toggle('visible', tab === 'cookies');
-    }
-
-    function toggleAuthAdvanced() {
-      var adv = document.getElementById('auth-advanced');
-      var btn = adv.previousElementSibling;
-      var open = adv.classList.toggle('visible');
-      btn.textContent = (open ? '\u25BC' : '\u25B6') + ' Advanced: CSS Selectors';
-    }
-
-    function clearAuthFields() {
-      document.getElementById('auth-login-url').value = '';
-      document.getElementById('auth-username').value = '';
-      document.getElementById('auth-password').value = '';
-      document.getElementById('auth-cookies').value = '';
-      document.getElementById('auth-sel-user').value = '';
-      document.getElementById('auth-sel-pass').value = '';
-      document.getElementById('auth-sel-submit').value = '';
-    }
-
-    function getAuthPayload() {
-      if (!authEnabled) return null;
-      if (authTab === 'credentials') {
-        var loginUrl = document.getElementById('auth-login-url').value.trim();
-        var username = document.getElementById('auth-username').value.trim();
-        var password = document.getElementById('auth-password').value;
-        if (!loginUrl || !username || !password) return null;
-        var selUser = document.getElementById('auth-sel-user').value.trim();
-        var selPass = document.getElementById('auth-sel-pass').value.trim();
-        var selSubmit = document.getElementById('auth-sel-submit').value.trim();
-        var auth = { mode: 'credentials', loginUrl: loginUrl, username: username, password: password };
-        if (selUser || selPass || selSubmit) {
-          auth.selectors = {};
-          if (selUser) auth.selectors.username = selUser;
-          if (selPass) auth.selectors.password = selPass;
-          if (selSubmit) auth.selectors.submit = selSubmit;
-        }
-        return auth;
-      } else {
-        var raw = document.getElementById('auth-cookies').value.trim();
-        if (!raw) return null;
-        try {
-          var cookies = JSON.parse(raw);
-          if (!Array.isArray(cookies)) throw new Error('Must be an array');
-          return { mode: 'cookies', cookies: cookies };
-        } catch (e) {
-          throw new Error('Invalid cookie JSON: ' + e.message);
-        }
-      }
-    }
 
     // Input mode toggle
     function setInputMode(mode) {
@@ -1067,7 +836,6 @@
       document.getElementById('url-row').style.display = mode === 'url' ? '' : 'none';
       document.getElementById('image-upload-area').classList.toggle('visible', mode === 'image');
       document.getElementById('image-generate-row').style.display = mode === 'image' ? '' : 'none';
-      document.getElementById('auth-toggle-wrap').classList.toggle('visible', mode === 'url');
     }
 
     // Source image upload
@@ -1268,9 +1036,7 @@
       var msgIndex = 0;
       var msgs = inputMode === 'image'
         ? ['Claude is analyzing the image...', 'Generating annotation plan...', 'Rendering all formats...', 'Almost there...']
-        : authEnabled
-          ? ['Logging in to target site...', 'Capturing authenticated page...', 'Claude is analyzing the page...', 'Generating annotation plan...', 'Rendering all formats...', 'Almost there...']
-          : statusMessages;
+        : statusMessages;
       statusText.textContent = msgs[0];
       var statusInterval = setInterval(function() {
         msgIndex = Math.min(msgIndex + 1, msgs.length - 1);
@@ -1304,20 +1070,6 @@
         payload.url = url;
       } else {
         payload.image = sourceImage;
-      }
-
-      try {
-        var authPayload = getAuthPayload();
-        if (authPayload) payload.auth = authPayload;
-      } catch (authErr) {
-        clearInterval(statusInterval);
-        statusEl.classList.remove('visible');
-        generateBtn.disabled = false;
-        var genBtnImg2 = document.getElementById('generate-btn-img');
-        if (genBtnImg2) genBtnImg2.disabled = false;
-        errorEl.textContent = authErr.message;
-        errorEl.classList.add('visible');
-        return;
       }
 
       try {
@@ -1383,8 +1135,6 @@
       promptInput.value = '';
       removeLogo();
       removeSourceImage();
-      clearAuthFields();
-      if (authEnabled) toggleAuth();
       generatedImages = [];
       imageGrid.textContent = '';
       resultsEl.classList.remove('visible');

@@ -30,9 +30,6 @@ app.post('/api/annotate', async (req, res) => {
     } else {
       payload.url = url;
     }
-    if (req.body.auth) {
-      payload.auth = req.body.auth;
-    }
 
     const response = await fetch(N8N_WEBHOOK, {
       method: 'POST',
@@ -71,9 +68,8 @@ app.post('/api/annotate', async (req, res) => {
       res.json({ success: false, error: 'No images returned from pipeline' });
     }
   } catch (err) {
-    const safeMsg = err.message?.replace(/password["\s:=]+\S+/gi, 'password:[REDACTED]') || 'Unknown error';
-    console.error('Annotation failed:', safeMsg);
-    res.status(500).json({ error: 'Annotation failed', details: safeMsg });
+    console.error('Annotation failed:', err.message);
+    res.status(500).json({ error: 'Annotation failed', details: err.message });
   }
 });
 

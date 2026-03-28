@@ -94,6 +94,62 @@ docker build -t annotate .
 docker run -p 3100:3100 -e N8N_WEBHOOK=https://your-n8n/webhook/annotate annotate
 ```
 
+## Future Work: Authenticated Page Support
+
+### Status: Shelved (2026-03-27)
+
+We attempted to add support for screenshotting pages behind authentication (SaaS dashboards, admin panels). The feature was partially implemented but proved too fragile for the hackathon timeline. It's documented here for future reference.
+
+### What Was Built
+
+- **Frontend**: "Login Required?" toggle with two modes — Credentials (username/password) and Cookies (JSON paste). Collapsible auth section with advanced CSS selector overrides.
+- **Express proxy**: Passes `auth` field through to n8n webhook. Credential-safe logging (redacts passwords from error messages).
+- **n8n workflow**: "Has Auth?" IF node routing to "Auth Screenshot" Code node that calls Browserless `/function` with a dynamically-built Puppeteer script for login automation.
+
+### Architecture (Credentials Never Touch the LLM)
+
+```
+Browser → Express (TLS) → n8n → Browserless (Docker network)
+                                       │
+                                  login + screenshot
+                                       │
+                                  screenshot only (image)
+                                       │
+                              n8n → Claude Vision (NO credentials)
+```
+
+### What Worked
+
+- Auth routing (Has Auth? IF node) — after fixing n8n expression engine issues with optional chaining and strict type validation
+- Browserless login automation — form fill, submit button detection with text-based fallback (`/sign.?in|log.?in/`), cookie injection mode
+- Screenshot capture of authenticated pages — Claude Vision correctly analyzed auth-gated content
+- Full pipeline completion — annotations generated accurately from authenticated page screenshots
+
+### What Failed
+
+The implementation hit a cascade of environment-specific issues:
+
+1. **Browserless v2 sandbox**: No `Buffer` global — `screenshot.toString('base64')` fails. Fix: use `page.screenshot({ encoding: 'base64' })`.
+2. **n8n expression engine**: Optional chaining (`$json.body?.auth?.mode`) resolves to objects instead of string values with `strict` type validation. Fix: ternary with `String()` cast + `loose` validation.
+3. **n8n MCP updates**: Workflow updates via MCP API sometimes silently failed to apply code changes. Required repeated verification cycles.
+4. **Template literal escaping**: Dynamically-built Puppeteer scripts using JS template literals broke in the Code node. Fix: string concatenation with `JSON.stringify()` for value interpolation.
+5. **Browserless `/screenshot` rendering**: `setContent` with large inline base64 images (~400KB) defaults to `waitUntil: "networkidle0"`, which never fires for data URIs. This caused the screenshot background to render as black/empty. Fix: `gotoOptions: { waitUntil: "load" }` — but applying this fix destabilized other parts of the pipeline.
+
+### Files Changed (reverted)
+
+- `server.js` — auth passthrough + logging guard (3 lines)
+- `public/index.html` — auth UI section (~250 lines CSS/HTML/JS)
+- n8n workflow `qQKlp8rg5E7GVRXR` — 2 added nodes (Has Auth?, Auth Screenshot)
+
+### Resuming This Work
+
+The core approach is sound. Key prerequisites for a stable implementation:
+
+1. **Isolate the Browserless render fix** (`waitUntil: "load"`) and verify it doesn't break existing non-auth rendering
+2. **Build the Auth Screenshot as a separate n8n workflow** to avoid destabilizing the main pipeline during iteration
+3. **Add execution error visibility** — the n8n MCP tool doesn't expose node-level error details, making debugging extremely slow
+4. **Test with real credentials end-to-end** before merging into the main workflow
+
 ## License
 
 MIT
