@@ -1,155 +1,197 @@
 # Annotate
 
-**Paste a URL. Get annotated tutorial images. No Canva needed.**
+### Paste a URL. Get annotated tutorial images. No Canva needed.
 
-Annotate takes any URL, screenshots it, uses Claude Vision to identify the most important elements, and renders annotated tutorial images with highlights, arrows, and callouts — ready to post on social media.
+> **"What if turning any webpage into annotated social media images took 10 seconds instead of 30 minutes in Canva?"**
 
-Built for the **Scrapes.ai x Hostinger Hackathon 2026**.
+Built for the **Scrapes.ai x Hostinger Hackathon 2026** · Live at **[annotate.felaniam.cloud](https://annotate.felaniam.cloud)**
 
-**Live at [annotate.felaniam.cloud](https://annotate.felaniam.cloud)**
+---
+
+## The Problem
+
+Creators, educators, and marketers constantly find web content worth sharing — a product launch, a tutorial walkthrough, an interesting landing page. But turning that into visual social content means:
+
+- Screenshotting the page and cropping manually
+- Opening Canva/Figma to place highlights and callouts
+- Drawing arrows, writing labels, picking colors by hand
+- Exporting and resizing for every platform
+- Repeating the whole process for each social network
+
+**A 2-minute discovery becomes a 30-minute design task.** Most people just share a link and move on.
+
+---
+
+## The Solution
+
+**Annotate** eliminates the design step entirely. Give it a URL, pick your platforms, and it delivers annotated tutorial images — with intelligent highlights, arrows, callouts, and a cohesive color scheme — rendered and ready to post.
+
+No templates. No drag-and-drop. No design decisions. Claude Vision *sees* the page, *understands* what matters, and *annotates* it for you.
+
+```
+URL  →  Screenshot  →  AI Analysis  →  SVG Annotations  →  Rendered PNG  →  Download & Post
+```
+
+---
+
+## Features
+
+- **8 Social Platforms** — Instagram Feed (4:5), Instagram Stories (9:16), Facebook (1:1), LinkedIn (1.91:1), X/Twitter (16:9), TikTok (9:16), Snapchat (9:16), Pinterest (2:3)
+- **One-Pass Intelligence** — Claude Vision analyzes once, renders to any ratio. 1 format or 8 = same ~$0.03 API cost
+- **Ratio Deduplication** — Platforms sharing a ratio (IG Stories / TikTok / Snapchat) render once, not three times
+- **User-Guided Focus** — Tell it what to highlight: *"Focus on the pricing table"* or *"Annotate the signup flow"*
+- **Percentage-Based Coordinates** — Annotations scale naturally to any aspect ratio without re-running the AI
+- **Image Upload Support** — Don't have a URL? Drop in a screenshot directly
+- **Batch Download** — One click to grab every generated image
+- **Dark Minimal UI** — Clean interface, no clutter
+
+---
+
+## Demo
+
+| Step | What Happens |
+|------|-------------|
+| **1. Paste** | Drop any URL into the input field |
+| **2. Select** | Check the platforms you want (Instagram, LinkedIn, X, etc.) |
+| **3. Guide** *(optional)* | Add a prompt to steer what Claude focuses on |
+| **4. Generate** | Hit go — results appear in ~10 seconds |
+| **5. Download** | Grab individual images or batch download all |
+
+**Try it live:** [annotate.felaniam.cloud](https://annotate.felaniam.cloud)
+
+<p align="center">
+  <img src="assets/demo-desktop.png" alt="Annotate Desktop UI" width="720" />
+</p>
+
+<details>
+<summary>Mobile view</summary>
+<p align="center">
+  <img src="assets/demo-mobile.png" alt="Annotate Mobile UI" width="320" />
+</p>
+</details>
 
 ---
 
 ## How It Works
 
-```
-URL → ScreenshotOne API → Claude Vision Analysis → SVG Overlay → Browserless PNG Render
-```
-
-1. **Screenshot** — ScreenshotOne captures a viewport screenshot (HMAC-signed requests)
-2. **Metadata** — Parallel HTML fetch extracts title, description, headings, OG image
-3. **Claude Vision** — Sends screenshot + metadata to Claude Sonnet. Claude returns a structured JSON annotation plan: highlights, arrows, callouts, color scheme, sections — all in percentage-based coordinates
-4. **Render** — Builds an HTML page with the screenshot as background and SVG annotations overlaid. Browserless (headless Chromium) renders it to a final PNG
-5. **Serve** — Node.js frontend displays the result with download buttons
-
-## Key Design Decision: Separate Annotation from Rendering
-
-Annotation is the expensive, creative step — it requires Claude Vision to understand the page and decide what to highlight. Rendering is mechanical — it just composites an SVG overlay onto a screenshot at specific pixel dimensions.
-
-By separating these concerns:
-
-- **Claude runs once per URL**, regardless of how many output formats you need
-- The same annotation plan (percentage-based coordinates) scales naturally to any aspect ratio
-- 1 format or 8 formats = same ~$0.03 Claude API cost
-- Rendering N formats only adds a few seconds of Browserless compute, not N expensive vision API calls
-
-This means selecting Instagram Feed + Facebook + LinkedIn + X/Twitter generates **one** annotation plan and renders it four ways — same highlights, same arrows, same callouts, just resized. You get consistent visual identity across platforms without paying 4x.
-
-## Features
-
-- **8 social platforms** — Instagram Feed (4:5), Instagram Stories (9:16), Facebook (1:1), LinkedIn (1.91:1), X/Twitter (16:9), TikTok (9:16), Snapchat (9:16), Pinterest (2:3)
-- **Multi-select** — Check multiple platforms, generates all from a single annotation pass
-- **User prompt** — Guide what Claude focuses on: "Highlight the pricing section" or "Focus on the signup flow"
-- **Ratio deduplication** — Platforms sharing a ratio (IG Stories/TikTok/Snapchat) render once
-- **Download All** — Batch download every generated image
-- **Dark UI** — Clean, minimal interface
-
-## Architecture
+Annotate separates **annotation** (the expensive, creative AI step) from **rendering** (the mechanical compositing step):
 
 ```
-[Browser] → [Node.js Express Server] → [n8n Webhook Pipeline]
-                                              ├── ScreenshotOne API (screenshot)
-                                              ├── HTML fetch (metadata)
-                                              ├── Claude Vision API (annotations)
-                                              └── Browserless (HTML → PNG per format)
+┌──────────┐     ┌────────────────┐     ┌──────────────────┐     ┌────────────────┐
+│  Browser  │────▶│  Express Server │────▶│  Claude Vision    │────▶│  n8n Pipeline   │
+│           │     │  (proxy + API)  │     │  (analyze once)   │     │  (render N fmt) │
+└──────────┘     └────────────────┘     └──────────────────┘     └────────────────┘
+                        │                        │                        │
+                        ▼                        ▼                        ▼
+                  ScreenshotOne           Structured JSON           Browserless
+                 (HMAC-signed             annotation plan          (HTML → PNG)
+                  page capture)        + metadata extraction
 ```
 
-| Component | Role | Hosting |
-|-----------|------|---------|
-| Frontend + Proxy | Express server, static HTML | Coolify on Hostinger VPS |
-| n8n Workflow | Orchestration pipeline (9 nodes) | Coolify on Hostinger VPS |
-| Browserless | Headless Chromium for HTML→PNG | Docker on Hostinger VPS |
-| ScreenshotOne | External screenshot API | SaaS |
-| Claude Vision | AI annotation analysis | Anthropic API |
+Claude returns all annotations in **percentage-based coordinates**, so the same plan scales naturally to 4:5, 9:16, 1:1, 16:9 — or any future ratio — without re-running the AI. Selecting 8 platforms generates **one** annotation plan and renders it 8 ways. Same highlights, same arrows, same callouts, just resized. Consistent visual identity across platforms without paying 8x.
 
-## Stack
+---
 
-- **n8n** — Workflow automation (webhook → pipeline → response)
-- **Claude Sonnet** — Vision analysis and annotation planning
-- **ScreenshotOne** — Signed screenshot capture
-- **Browserless** — Self-hosted headless Chrome for HTML→PNG rendering
-- **Node.js / Express** — Frontend proxy server
-- **Hostinger VPS** — All infrastructure via Coolify
+## Tech Stack
 
-## Running Locally
+| Technology | Role | Why This |
+|-----------|------|----------|
+| **Node.js + Express** | Server & API proxy | Minimal, fast, handles the single `/api/annotate` endpoint |
+| **Claude Sonnet** | Vision analysis + annotation planning | Best-in-class vision understanding — sees UI elements, not just pixels |
+| **ScreenshotOne** | Page capture | HMAC-signed requests, viewport screenshots |
+| **Browserless** | HTML → PNG rendering | Self-hosted headless Chrome — renders SVG overlays onto screenshots at exact pixel dimensions |
+| **n8n** | Workflow orchestration | Visual pipeline that connects screenshot → analysis → rendering (9 nodes) |
+| **Coolify** | Deployment platform | One-click Docker deploys on Hostinger VPS — the entire stack self-hosted |
+
+**Dependencies:** `express`
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 18+
+- Running [n8n](https://n8n.io) instance with the Annotate workflow
+- [Browserless](https://browserless.io) instance (self-hosted or cloud)
+- [ScreenshotOne](https://screenshotone.com) API credentials
+- [Anthropic](https://anthropic.com) API key (configured in n8n)
+
+### Local Setup
 
 ```bash
+# Clone
+git clone https://github.com/txmyer-dev/annotate.git
+cd annotate
+
+# Install
 npm install
-N8N_WEBHOOK=https://your-n8n-instance/webhook/annotate npm start
+
+# Configure
+export N8N_WEBHOOK=https://your-n8n-instance/webhook/annotate
+
+# Run
+npm start
 ```
 
-The app runs on port 3100. You'll need a running n8n instance with the Annotate workflow configured.
+App runs on `http://localhost:3100`
 
-## Environment Variables
+### Docker
+
+```bash
+docker build -t annotate .
+docker run -p 3100:3100 \
+  -e N8N_WEBHOOK=https://your-n8n/webhook/annotate \
+  annotate
+```
+
+### Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `PORT` | `3100` | Server port |
 | `N8N_WEBHOOK` | `https://n8n.felaniam.cloud/webhook/annotate` | n8n webhook URL |
 
-## Docker
+---
 
-```bash
-docker build -t annotate .
-docker run -p 3100:3100 -e N8N_WEBHOOK=https://your-n8n/webhook/annotate annotate
-```
+## Known Limitations
 
-## Future Work: Authenticated Page Support
+- **Authenticated pages not supported.** Pages behind login walls can't be captured. An auth feature was prototyped (Browserless Puppeteer login automation) but shelved due to environment-specific fragility. The core approach is sound — see [auth notes](#authenticated-page-support-shelved) below.
+- **Long pages may produce large screenshots.** Content-heavy pages can generate oversized images. Landing pages and short-form content work best.
 
-### Status: Shelved (2026-03-27)
+---
 
-We attempted to add support for screenshotting pages behind authentication (SaaS dashboards, admin panels). The feature was partially implemented but proved too fragile for the hackathon timeline. It's documented here for future reference.
-
-### What Was Built
-
-- **Frontend**: "Login Required?" toggle with two modes — Credentials (username/password) and Cookies (JSON paste). Collapsible auth section with advanced CSS selector overrides.
-- **Express proxy**: Passes `auth` field through to n8n webhook. Credential-safe logging (redacts passwords from error messages).
-- **n8n workflow**: "Has Auth?" IF node routing to "Auth Screenshot" Code node that calls Browserless `/function` with a dynamically-built Puppeteer script for login automation.
-
-### Architecture (Credentials Never Touch the LLM)
+## Architecture
 
 ```
-Browser → Express (TLS) → n8n → Browserless (Docker network)
-                                       │
-                                  login + screenshot
-                                       │
-                                  screenshot only (image)
-                                       │
-                              n8n → Claude Vision (NO credentials)
+annotate/
+├── server.js           # Express server — proxies requests to n8n webhook
+├── public/
+│   └── index.html      # Single-page frontend (dark minimal UI)
+├── Dockerfile          # Alpine Node container
+├── docker-compose.yaml # Full stack compose with Traefik labels
+└── package.json
 ```
 
-### What Worked
+**Cost per generation:** ~$0.03 (one Claude Sonnet vision call) + negligible compute for rendering. Generating 8 platform formats from one URL costs the same as generating 1.
 
-- Auth routing (Has Auth? IF node) — after fixing n8n expression engine issues with optional chaining and strict type validation
-- Browserless login automation — form fill, submit button detection with text-based fallback (`/sign.?in|log.?in/`), cookie injection mode
-- Screenshot capture of authenticated pages — Claude Vision correctly analyzed auth-gated content
-- Full pipeline completion — annotations generated accurately from authenticated page screenshots
+---
 
-### What Failed
+## Authenticated Page Support (Shelved)
 
-The implementation hit a cascade of environment-specific issues:
+An authenticated page capture feature was prototyped and reverted. The approach — Browserless Puppeteer login automation with credentials isolated from the LLM — worked end-to-end but hit too many environment-specific issues (Browserless v2 sandbox limitations, n8n expression engine quirks, template literal escaping in Code nodes) to stabilize within the hackathon timeline.
 
-1. **Browserless v2 sandbox**: No `Buffer` global — `screenshot.toString('base64')` fails. Fix: use `page.screenshot({ encoding: 'base64' })`.
-2. **n8n expression engine**: Optional chaining (`$json.body?.auth?.mode`) resolves to objects instead of string values with `strict` type validation. Fix: ternary with `String()` cast + `loose` validation.
-3. **n8n MCP updates**: Workflow updates via MCP API sometimes silently failed to apply code changes. Required repeated verification cycles.
-4. **Template literal escaping**: Dynamically-built Puppeteer scripts using JS template literals broke in the Code node. Fix: string concatenation with `JSON.stringify()` for value interpolation.
-5. **Browserless `/screenshot` rendering**: `setContent` with large inline base64 images (~400KB) defaults to `waitUntil: "networkidle0"`, which never fires for data URIs. This caused the screenshot background to render as black/empty. Fix: `gotoOptions: { waitUntil: "load" }` — but applying this fix destabilized other parts of the pipeline.
+The core architecture is sound: credentials flow through Express → n8n → Browserless only, never reaching Claude Vision. A future implementation should isolate auth capture as a separate n8n workflow to avoid destabilizing the main pipeline.
 
-### Files Changed (reverted)
-
-- `server.js` — auth passthrough + logging guard (3 lines)
-- `public/index.html` — auth UI section (~250 lines CSS/HTML/JS)
-- n8n workflow `qQKlp8rg5E7GVRXR` — 2 added nodes (Has Auth?, Auth Screenshot)
-
-### Resuming This Work
-
-The core approach is sound. Key prerequisites for a stable implementation:
-
-1. **Isolate the Browserless render fix** (`waitUntil: "load"`) and verify it doesn't break existing non-auth rendering
-2. **Build the Auth Screenshot as a separate n8n workflow** to avoid destabilizing the main pipeline during iteration
-3. **Add execution error visibility** — the n8n MCP tool doesn't expose node-level error details, making debugging extremely slow
-4. **Test with real credentials end-to-end** before merging into the main workflow
+---
 
 ## License
 
 MIT
+
+---
+
+<p align="center">
+  Built with frustration toward Canva and respect for Claude's vision capabilities.<br/>
+  <strong>Scrapes.ai x Hostinger Hackathon 2026</strong>
+</p>
