@@ -37,7 +37,7 @@ URL  →  Screenshot  →  AI Analysis  →  SVG Annotations  →  Rendered PNG 
 ## Features
 
 - **12 Social Platforms** — Instagram Feed (4:5), Instagram Stories (9:16), Instagram Portrait (3:4), Facebook (1:1), LinkedIn (1.91:1), X/Twitter (16:9), TikTok (9:16), Snapchat (9:16), Pinterest (2:3), Reddit (4:3), Discord (16:9), Twitch (16:9)
-- **One-Pass Intelligence** — Claude Vision analyzes once, renders to any ratio. 1 format or 8 = same ~$0.03 API cost
+- **One-Pass Intelligence** — Claude Vision analyzes once, renders to any ratio. 1 format or 12 = same ~$0.03 API cost
 - **Ratio Deduplication** — Platforms sharing a ratio (IG Stories / TikTok / Snapchat) render once, not three times
 - **User-Guided Focus** — Tell it what to highlight: *"Focus on the pricing table"* or *"Annotate the signup flow"*
 - **Percentage-Based Coordinates** — Annotations scale naturally to any aspect ratio without re-running the AI
@@ -168,12 +168,15 @@ annotate/
 ├── server.js           # Express server — proxies requests to n8n webhook
 ├── public/
 │   └── index.html      # Single-page frontend (dark minimal UI)
+├── assets/
+│   ├── demo-desktop.png
+│   └── demo-mobile.png
 ├── Dockerfile          # Alpine Node container
 ├── docker-compose.yaml # Full stack compose with Traefik labels
 └── package.json
 ```
 
-**Cost per generation:** ~$0.03 (one Claude Sonnet vision call) + negligible compute for rendering. Generating 8 platform formats from one URL costs the same as generating 1.
+**Cost per generation:** ~$0.03 (one Claude Sonnet vision call) + negligible compute for rendering. Generating 12 platform formats from one URL costs the same as generating 1.
 
 ---
 
