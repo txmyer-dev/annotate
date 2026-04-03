@@ -36,7 +36,7 @@ URL  →  Screenshot  →  AI Analysis  →  SVG Annotations  →  Rendered PNG 
 
 ## Features
 
-- **8 Social Platforms** — Instagram Feed (4:5), Instagram Stories (9:16), Facebook (1:1), LinkedIn (1.91:1), X/Twitter (16:9), TikTok (9:16), Snapchat (9:16), Pinterest (2:3)
+- **12 Social Platforms** — Instagram Feed (4:5), Instagram Stories (9:16), Instagram Portrait (3:4), Facebook (1:1), LinkedIn (1.91:1), X/Twitter (16:9), TikTok (9:16), Snapchat (9:16), Pinterest (2:3), Reddit (4:3), Discord (16:9), Twitch (16:9)
 - **One-Pass Intelligence** — Claude Vision analyzes once, renders to any ratio. 1 format or 8 = same ~$0.03 API cost
 - **Ratio Deduplication** — Platforms sharing a ratio (IG Stories / TikTok / Snapchat) render once, not three times
 - **User-Guided Focus** — Tell it what to highlight: *"Focus on the pricing table"* or *"Annotate the signup flow"*
@@ -88,7 +88,7 @@ Annotate separates **annotation** (the expensive, creative AI step) from **rende
                   page capture)        + metadata extraction
 ```
 
-Claude returns all annotations in **percentage-based coordinates**, so the same plan scales naturally to 4:5, 9:16, 1:1, 16:9 — or any future ratio — without re-running the AI. Selecting 8 platforms generates **one** annotation plan and renders it 8 ways. Same highlights, same arrows, same callouts, just resized. Consistent visual identity across platforms without paying 8x.
+Claude returns all annotations in **percentage-based coordinates**, so the same plan scales naturally to 4:5, 9:16, 1:1, 16:9 — or any future ratio — without re-running the AI. Selecting all 12 platforms generates **one** annotation plan and renders it 12 ways. Same highlights, same arrows, same callouts, just resized. Consistent visual identity across platforms without paying 12x.
 
 ---
 
