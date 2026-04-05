@@ -49,12 +49,15 @@ app.post('/api/annotate', async (req, res) => {
           body: JSON.stringify({ ...payload, format: fmt }),
         });
 
+        const text = await response.text();
         if (!response.ok) {
-          const text = await response.text();
-          return { format: fmt, image: null, error: text };
+          return { format: fmt, image: null, error: `${response.status}: ${text.substring(0, 200)}` };
         }
 
-        const data = await response.json();
+        let data;
+        try { data = JSON.parse(text); } catch(e) {
+          return { format: fmt, image: null, error: `Invalid JSON: ${text.substring(0, 200)}` };
+        }
         return {
           format: fmt,
           image: data.image || null,
