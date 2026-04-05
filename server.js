@@ -3,12 +3,19 @@ const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3100;
-const N8N_WEBHOOK = process.env.N8N_WEBHOOK || 'https://n8n.felaniam.cloud/webhook/annotate';
+const N8N_BASE = process.env.N8N_BASE || 'https://n8n.felaniam.cloud/webhook';
+
+// Per-format webhook paths — each maps to a dedicated n8n workflow
+const FORMAT_WEBHOOKS = {
+  '3:4': `${N8N_BASE}/annotate-3-4`,
+  '4:5': `${N8N_BASE}/annotate-4-5`,
+  '9:16': `${N8N_BASE}/annotate-9-16`,
+};
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Proxy endpoint — calls n8n webhook with formats + prompt, returns all images
+// Proxy endpoint — fans out to per-format n8n workflows in parallel
 app.post('/api/annotate', async (req, res) => {
   let { url, image, formats, prompt, logo } = req.body;
 
@@ -16,7 +23,6 @@ app.post('/api/annotate', async (req, res) => {
     return res.status(400).json({ error: 'URL or image is required' });
   }
 
-  // Normalize URL: add https:// if no protocol
   if (url && !/^https?:\/\//i.test(url)) {
     url = 'https://' + url.replace(/^\/\//, '');
   }
@@ -24,49 +30,66 @@ app.post('/api/annotate', async (req, res) => {
   const formatList = formats || ['4:5'];
 
   try {
-    const payload = { formats: formatList, prompt: prompt || '', logo: logo || '' };
+    const payload = { prompt: prompt || '', logo: logo || '' };
     if (image) {
       payload.image = image;
     } else {
       payload.url = url;
     }
 
-    const response = await fetch(N8N_WEBHOOK, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+    // Fan out: one request per format, all in parallel
+    const promises = formatList.map(async (fmt) => {
+      const webhookUrl = FORMAT_WEBHOOKS[fmt];
+      if (!webhookUrl) return { format: fmt, image: null, error: `No workflow for format ${fmt}` };
+
+      try {
+        const response = await fetch(webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...payload, format: fmt }),
+        });
+
+        if (!response.ok) {
+          const text = await response.text();
+          return { format: fmt, image: null, error: text };
+        }
+
+        const data = await response.json();
+        return {
+          format: fmt,
+          image: data.image || null,
+          title: data.title,
+          subtitle: data.subtitle,
+          url: data.url,
+        };
+      } catch (err) {
+        return { format: fmt, image: null, error: err.message };
+      }
     });
 
-    if (!response.ok) {
-      const text = await response.text();
-      throw new Error(text || 'n8n webhook failed');
+    const results = await Promise.all(promises);
+
+    const images = {};
+    let title = '', subtitle = '';
+    for (const r of results) {
+      if (r.image) images[r.format] = r.image;
+      if (r.title) title = r.title;
+      if (r.subtitle) subtitle = r.subtitle;
     }
 
-    const data = await response.json();
-
-    // New multi-format response from Render All Formats node
-    if (data.images) {
-      res.json({
-        success: true,
-        title: data.title,
-        subtitle: data.subtitle,
-        url: data.url || url,
-        formats: data.formats || formatList,
-        annotationCount: data.annotationCount || 0,
-        images: data.images,
-      });
-    } else if (data.image) {
-      // Legacy single-image fallback
-      res.json({
-        success: true,
-        title: data.title,
-        subtitle: data.subtitle,
-        url: data.url || url,
-        images: { [formatList[0]]: data.image },
-      });
-    } else {
-      res.json({ success: false, error: 'No images returned from pipeline' });
+    if (Object.keys(images).length === 0) {
+      return res.json({ success: false, error: 'No images returned from pipeline' });
     }
+
+    res.json({
+      success: true,
+      title,
+      subtitle,
+      url: url || 'local upload',
+      formats: formatList,
+      annotationCount: Object.keys(images).length,
+      images,
+    });
   } catch (err) {
     console.error('Annotation failed:', err.message);
     res.status(500).json({ error: 'Annotation failed', details: err.message });
