@@ -36,8 +36,9 @@ URL  →  Screenshot  →  AI Analysis  →  SVG Annotations  →  Rendered PNG 
 
 ## Features
 
-- **12 Social Platforms** — Instagram Feed (4:5), Instagram Stories (9:16), Instagram Portrait (3:4), Facebook (1:1), LinkedIn (1.91:1), X/Twitter (16:9), TikTok (9:16), Snapchat (9:16), Pinterest (2:3), Reddit (4:3), Discord (16:9), Twitch (16:9)
-- **One-Pass Intelligence** — Claude Vision analyzes once, renders to any ratio. 1 format or 12 = same ~$0.03 API cost
+- **3 Instagram Formats** — IG Landscape (3:4), IG Feed (4:5), IG Stories (9:16) — each with a dedicated n8n pipeline tuned for its aspect ratio
+- **Per-Format Intelligence** — Each format gets its own viewport-matched screenshot and Claude Vision analysis, producing annotations optimized for that specific aspect ratio
+- **Parallel Fan-Out** — All selected formats render simultaneously via `Promise.all` — 3 formats take the same wall-clock time as 1
 - **Ratio Deduplication** — Platforms sharing a ratio (IG Stories / TikTok / Snapchat) render once, not three times
 - **User-Guided Focus** — Tell it what to highlight: *"Focus on the pricing table"* or *"Annotate the signup flow"*
 - **Percentage-Based Coordinates** — Annotations scale naturally to any aspect ratio without re-running the AI
@@ -74,21 +75,17 @@ URL  →  Screenshot  →  AI Analysis  →  SVG Annotations  →  Rendered PNG 
 
 ## How It Works
 
-Annotate separates **annotation** (the expensive, creative AI step) from **rendering** (the mechanical compositing step):
+Annotate uses a **parallel fan-out** architecture — the Express server dispatches one request per format to dedicated n8n workflows that each handle the full pipeline independently:
 
 ```
-┌──────────┐     ┌────────────────┐     ┌──────────────────┐     ┌────────────────┐
-│  Browser  │────▶│  Express Server │────▶│  Claude Vision    │────▶│  n8n Pipeline   │
-│           │     │  (proxy + API)  │     │  (analyze once)   │     │  (render N fmt) │
-└──────────┘     └────────────────┘     └──────────────────┘     └────────────────┘
-                        │                        │                        │
-                        ▼                        ▼                        ▼
-                  ScreenshotOne           Structured JSON           Browserless
-                 (HMAC-signed             annotation plan          (HTML → PNG)
-                  page capture)        + metadata extraction
+                              ┌─▶  n8n (3:4)  ─▶  Screenshot(360×480) → Claude Vision → Browserless → PNG
+┌──────────┐     ┌─────────┐ │
+│  Browser  │────▶│ Express │─┼─▶  n8n (4:5)  ─▶  Screenshot(360×450) → Claude Vision → Browserless → PNG
+│           │     │ (proxy) │ │
+└──────────┘     └─────────┘ └─▶  n8n (9:16) ─▶  Screenshot(360×640) → Claude Vision → Browserless → PNG
 ```
 
-Claude returns all annotations in **percentage-based coordinates**, so the same plan scales naturally to 4:5, 9:16, 1:1, 16:9 — or any future ratio — without re-running the AI. Selecting all 12 platforms generates **one** annotation plan and renders it 12 ways. Same highlights, same arrows, same callouts, just resized. Consistent visual identity across platforms without paying 12x.
+Each format gets a **viewport-matched screenshot** (sized to its aspect ratio), its own **Claude Vision analysis**, and a dedicated **Browserless render**. This produces better annotations than a shared plan because each screenshot captures the page at the proportions that format will display. All formats run in parallel via `Promise.all`.
 
 ---
 
@@ -100,7 +97,7 @@ Claude returns all annotations in **percentage-based coordinates**, so the same 
 | **Claude Sonnet** | Vision analysis + annotation planning | Best-in-class vision understanding — sees UI elements, not just pixels |
 | **ScreenshotOne** | Page capture | HMAC-signed requests, viewport screenshots |
 | **Browserless** | HTML → PNG rendering | Self-hosted headless Chrome — renders SVG overlays onto screenshots at exact pixel dimensions |
-| **n8n** | Workflow orchestration | Visual pipeline that connects screenshot → analysis → rendering (9 nodes) |
+| **n8n** | Workflow orchestration | Three parallel workflows (one per format) — each: screenshot → analysis → rendering (6 nodes each) |
 | **Coolify** | Deployment platform | One-click Docker deploys on Hostinger VPS — the entire stack self-hosted |
 
 **Dependencies:** `express`
@@ -128,7 +125,7 @@ cd annotate
 npm install
 
 # Configure
-export N8N_WEBHOOK=https://your-n8n-instance/webhook/annotate
+export N8N_BASE=https://your-n8n-instance/webhook
 
 # Run
 npm start
@@ -141,7 +138,7 @@ App runs on `http://localhost:3100`
 ```bash
 docker build -t annotate .
 docker run -p 3100:3100 \
-  -e N8N_WEBHOOK=https://your-n8n/webhook/annotate \
+  -e N8N_BASE=https://your-n8n/webhook \
   annotate
 ```
 
@@ -150,7 +147,7 @@ docker run -p 3100:3100 \
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `PORT` | `3100` | Server port |
-| `N8N_WEBHOOK` | `https://n8n.felaniam.cloud/webhook/annotate` | n8n webhook URL |
+| `N8N_BASE` | `https://n8n.felaniam.cloud/webhook` | Base URL for n8n webhooks (per-format paths appended automatically) |
 
 ---
 
@@ -165,7 +162,7 @@ docker run -p 3100:3100 \
 
 ```
 annotate/
-├── server.js           # Express server — proxies requests to n8n webhook
+├── server.js           # Express server — fans out to per-format n8n webhooks
 ├── public/
 │   └── index.html      # Single-page frontend (dark minimal UI)
 ├── assets/
@@ -176,7 +173,7 @@ annotate/
 └── package.json
 ```
 
-**Cost per generation:** ~$0.03 (one Claude Sonnet vision call) + negligible compute for rendering. Generating 12 platform formats from one URL costs the same as generating 1.
+**Cost per generation:** ~$0.03 per format (one Claude Sonnet vision call each). 3 IG formats = ~$0.09 total. Each format gets its own tailored analysis.
 
 ---
 
