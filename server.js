@@ -101,10 +101,10 @@ app.post('/api/annotate', async (req, res) => {
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', webhook: N8N_WEBHOOK });
+  res.json({ status: 'ok', webhookBase: N8N_BASE });
 });
 
 app.listen(PORT, () => {
   console.log(`Annotate app running on port ${PORT}`);
-  console.log(`n8n webhook: ${N8N_WEBHOOK}`);
+  console.log(`n8n webhook base: ${N8N_BASE}`);
 });

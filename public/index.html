@@ -1082,8 +1082,10 @@
         clearInterval(statusInterval);
 
         if (!res.ok) {
-          var errData = await res.json();
-          throw new Error(errData.error || 'Request failed');
+          var errText = await res.text();
+          var errMsg = 'Request failed';
+          try { var errData = JSON.parse(errText); errMsg = errData.error || errMsg; } catch(e) { errMsg = errText.substring(0, 200) || errMsg; }
+          throw new Error(errMsg);
         }
 
         var data = await res.json();
