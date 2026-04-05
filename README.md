@@ -108,11 +108,31 @@ Each format gets a **viewport-matched screenshot** (sized to its aspect ratio), 
 
 ### Prerequisites
 
-- Node.js 18+
-- Running [n8n](https://n8n.io) instance with the Annotate workflow
-- [Browserless](https://browserless.io) instance (self-hosted or cloud)
-- [ScreenshotOne](https://screenshotone.com) API credentials
-- [Anthropic](https://anthropic.com) API key (configured in n8n)
+You need five things running before Annotate works end-to-end:
+
+**1. Node.js 18+**
+```bash
+node --version  # must be >= 18
+```
+
+**2. n8n instance** — hosts the annotation workflows
+- Self-host via Docker: `docker run -it --rm -p 5678:5678 n8nio/n8n`
+- Or use [n8n Cloud](https://n8n.io/cloud/)
+- Import three workflows (one per format) — each needs a Webhook trigger node with paths: `annotate-3-4`, `annotate-4-5`, `annotate-9-16`
+- Set each webhook's Response Mode to "Last Node"
+
+**3. ScreenshotOne account** — captures page screenshots
+- Sign up at [screenshotone.com](https://screenshotone.com) (free tier available)
+- Get your `access_key` and `secret_key` from the dashboard
+- These go into the n8n "Fetch & Screenshot" Code nodes (HMAC-signed requests)
+
+**4. Anthropic API key** — powers Claude Vision analysis
+- Get a key at [console.anthropic.com](https://console.anthropic.com)
+- Add it to the `x-api-key` header in each n8n workflow's "Claude Vision Annotator" HTTP Request node
+
+**5. Browserless instance** — renders annotated HTML to PNG
+- Self-host: `docker run -p 3000:3000 browserless/chrome`
+- Update the render URL in each n8n workflow's "Parse + Render" Code node to point to your instance
 
 ### Local Setup
 
